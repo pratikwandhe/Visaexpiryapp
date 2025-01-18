@@ -66,7 +66,7 @@ def get_students_with_expired_visa(data, date_column):
 
 # Streamlit App
 # Add an image to the app header
-st.image("visa_banner.jpg", use_column_width=True)  # Replace with your image file name
+st.image("SPH_Rastar_image_landscape-1-removebg-preview.png", use_column_width=True)  # Replace with your image file name
 
 st.title("SPH's Visa Expiry Alerts")
 
