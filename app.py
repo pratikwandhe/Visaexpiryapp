@@ -80,7 +80,7 @@ st.markdown(
 )
 
 # Add app header image
-st.image("visa_banner.jpg", use_column_width=True)  # Replace with your image file name
+st.image("SPH_Rastar_image_landscape-1-removebg-preview.png", use_container_width=True)  # Replace with your image file name
 
 # Add title and subheading
 st.markdown("<h1 style='text-align: center; color: blue;'>SPH's Visa Expiry Alerts</h1>", unsafe_allow_html=True)
