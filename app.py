@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import time
 
 
 # Function to highlight expiry dates
@@ -65,67 +66,89 @@ def get_students_with_expired_visa(data, date_column):
 
 
 # Streamlit App
-# Add an image to the app header
-st.image("SPH_Rastar_image_landscape-1-removebg-preview.png", use_container_width=True)  # Replace with your image file name
+# Add CSS styling for the background
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #f0f8ff;
+    }
+    footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-st.title("SPH's Visa Expiry Alerts")
+# Add app header image
+st.image("visa_banner.jpg", use_column_width=True)  # Replace with your image file name
 
-# File uploader
-uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"])
+# Add title and subheading
+st.markdown("<h1 style='text-align: center; color: blue;'>SPH's Visa Expiry Alerts</h1>", unsafe_allow_html=True)
+st.markdown("### 🚨 Quickly check visa expiration dates and act on them!")
 
+# Sidebar content
+st.sidebar.title("Navigation")
+st.sidebar.info("Use this app to identify visa expiry alerts for students.")
+uploaded_file = st.sidebar.file_uploader("Upload an Excel file", type=["xlsx", "xls"])
+
+# Main logic
 if uploaded_file:
     try:
-        # Read the Excel file
+        # Read and preview uploaded file
         df = pd.read_excel(uploaded_file)
-
-        # Display the first few rows of the uploaded file with scrollable view
         st.write("Uploaded File Preview:")
-        st.dataframe(df, height=400)
+        st.dataframe(df, height=300)
 
         # User input for the date column
-        date_column = st.selectbox("Select the Visa Expiry Date Column",
-                                   df.columns)
+        date_column = st.sidebar.selectbox("Select the Visa Expiry Date Column", df.columns)
 
-        # Check button
-        if st.button("Check"):
-            # Convert date column to datetime
-            df[date_column] = pd.to_datetime(df[date_column],
-                                             format='%d-%m-%Y',
-                                             errors='coerce')
+        # Filter dates using sidebar
+        st.sidebar.markdown("### Filter by Expiry Date")
+        start_date = st.sidebar.date_input("Start Date", datetime.today())
+        end_date = st.sidebar.date_input("End Date", datetime.today() + timedelta(days=30))
 
-            # Highlight rows based on expiry dates
-            styled_df = df.style.apply(
-                lambda row: highlight_expiry_dates(row, date_column), axis=1)
+        # Process data
+        with st.spinner("Processing your data..."):
+            time.sleep(1)  # Simulate processing time
+            df[date_column] = pd.to_datetime(df[date_column], format="%d-%m-%Y", errors="coerce")
 
-            # Display the styled dataframe
-            st.write("Highlighted Visa Expiry Dates:")
-            st.dataframe(styled_df, height=400)
+        # Get students with visa expiring soon
+        expiring_students = get_students_with_visa_expiry_soon(df, date_column)
 
-            # Get students with visa expiring soon
-            expiring_students = get_students_with_visa_expiry_soon(
-                df, date_column)
+        # Get students with expired visa
+        expired_students = get_students_with_expired_visa(df, date_column)
 
-            if not expiring_students.empty:
-                st.success("Students with visa expiring soon (sorted by days remaining):")
-                st.dataframe(expiring_students)
+        # Filtered data within date range
+        filtered_df = df[(df[date_column] >= pd.Timestamp(start_date)) & (df[date_column] <= pd.Timestamp(end_date))]
 
-                # Show stats
-                st.write(f"**Total students with visa expiring soon:** {len(expiring_students)}")
-            else:
-                st.info("No students have a visa expiring in the next month.")
+        # Display metrics
+        st.markdown("## 📊 Key Metrics")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Records", len(df))
+        col2.metric("Expiring Soon", len(expiring_students))
+        col3.metric("Already Expired", len(expired_students))
 
-            # Get students with expired visa
-            expired_students = get_students_with_expired_visa(df, date_column)
+        # Display filtered results
+        st.markdown("## 📅 Filtered Results by Date Range")
+        st.dataframe(filtered_df)
 
-            if not expired_students.empty:
-                st.error("Students whose visa has already expired:")
-                st.dataframe(expired_students)
+        # Display expiring soon students
+        if not expiring_students.empty:
+            st.markdown("## 🟠 Students with Visa Expiring Soon (Sorted by Days Remaining):")
+            st.dataframe(expiring_students)
+        else:
+            st.info("No students have a visa expiring in the next month.")
 
-                # Show stats
-                st.write(f"**Total students with expired visa:** {len(expired_students)}")
-            else:
-                st.info("No students have expired visas.")
+        # Display expired students
+        if not expired_students.empty:
+            st.markdown("## 🔴 Students Whose Visa Has Already Expired:")
+            st.dataframe(expired_students)
+        else:
+            st.info("No students have expired visas.")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
     st.info("Please upload an Excel file to proceed.")
+
+# Footer
+st.markdown("<hr><p style='text-align: center;'>© 2025 SPH Team</p>", unsafe_allow_html=True)
