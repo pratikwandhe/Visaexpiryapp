@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 
-# Function to filter students with visa expiry in around 1 month and highlight rows
+# Function to highlight expiry dates
 def highlight_expiry_dates(row, date_column):
     today = datetime.today()
     target_date = today + timedelta(days=30)
@@ -35,7 +35,30 @@ def get_students_with_visa_expiry_soon(data, date_column, days=30):
         # Calculate days remaining for each student
         expiring_soon["Days Remaining"] = (expiring_soon[date_column] - today).dt.days
 
+        # Sort by days remaining
+        expiring_soon = expiring_soon.sort_values(by="Days Remaining", ascending=True)
+
         return expiring_soon
+    except Exception as e:
+        st.error(f"Error processing the data: {e}")
+        return pd.DataFrame()
+
+
+# Function to filter students whose visa has already expired
+def get_students_with_expired_visa(data, date_column):
+    try:
+        today = datetime.today()
+
+        # Filter students whose visa expiry date is in the past
+        expired = data[data[date_column] < today].copy()
+
+        # Add a "Days Overdue" column
+        expired["Days Overdue"] = (today - expired[date_column]).dt.days
+
+        # Sort by overdue days in descending order
+        expired = expired.sort_values(by="Days Overdue", ascending=False)
+
+        return expired
     except Exception as e:
         st.error(f"Error processing the data: {e}")
         return pd.DataFrame()
@@ -80,13 +103,25 @@ if uploaded_file:
                 df, date_column)
 
             if not expiring_students.empty:
-                st.success("Students with visa expiring soon:")
+                st.success("Students with visa expiring soon (sorted by days remaining):")
                 st.dataframe(expiring_students)
 
                 # Show stats
                 st.write(f"**Total students with visa expiring soon:** {len(expiring_students)}")
             else:
                 st.info("No students have a visa expiring in the next month.")
+
+            # Get students with expired visa
+            expired_students = get_students_with_expired_visa(df, date_column)
+
+            if not expired_students.empty:
+                st.error("Students whose visa has already expired:")
+                st.dataframe(expired_students)
+
+                # Show stats
+                st.write(f"**Total students with expired visa:** {len(expired_students)}")
+            else:
+                st.info("No students have expired visas.")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
