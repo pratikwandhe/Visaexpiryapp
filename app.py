@@ -43,7 +43,7 @@ def get_students_with_visa_expiry_soon(data, date_column, days=30):
 
 
 # Streamlit App
-st.title("Visa Expiry Checker")
+st.title("SPH's Visa expiry alerts")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"])
