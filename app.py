@@ -24,18 +24,17 @@ def highlight_expiry_dates(row, date_column):
 # Function to filter students with visa expiry in around 1 month
 def get_students_with_visa_expiry_soon(data, date_column, days=30):
     try:
-        # Convert date column to datetime (assuming dd-mm-yyyy format)
-        data[date_column] = pd.to_datetime(data[date_column],
-                                           format='%d-%m-%Y',
-                                           errors='coerce')
-
         # Calculate today's date and the target date range
         today = datetime.today()
         target_date = today + timedelta(days=days)
 
         # Filter students whose visa expiry date is within the next `days`
         expiring_soon = data[(data[date_column] >= today)
-                             & (data[date_column] <= target_date)]
+                             & (data[date_column] <= target_date)].copy()
+
+        # Calculate days remaining for each student
+        expiring_soon["Days Remaining"] = (expiring_soon[date_column] - today).dt.days
+
         return expiring_soon
     except Exception as e:
         st.error(f"Error processing the data: {e}")
@@ -43,7 +42,7 @@ def get_students_with_visa_expiry_soon(data, date_column, days=30):
 
 
 # Streamlit App
-st.title("SPH's Visa expiry alerts")
+st.title("SPH's Visa Expiry Alerts")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"])
@@ -83,6 +82,9 @@ if uploaded_file:
             if not expiring_students.empty:
                 st.success("Students with visa expiring soon:")
                 st.dataframe(expiring_students)
+
+                # Show stats
+                st.write(f"**Total students with visa expiring soon:** {len(expiring_students)}")
             else:
                 st.info("No students have a visa expiring in the next month.")
     except Exception as e:
