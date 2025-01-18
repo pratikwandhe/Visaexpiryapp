@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import smtplib
+from email.mime.text import MIMEText
 import time
 
 
@@ -65,6 +67,36 @@ def get_students_with_expired_visa(data, date_column):
         return pd.DataFrame()
 
 
+# Function to send email
+def send_email(recipient_email, student_name, days_remaining):
+    sender_email = "your_email@gmail.com"  # Replace with your Gmail address
+    sender_password = "your_app_password"  # Replace with your Gmail App Password
+
+    subject = "Visa Renewal Notification"
+    body = f"""Dear {student_name},
+
+Your visa is expiring in {days_remaining} days. Please gather the necessary documents and be ready for the visa renewal process.
+
+Thanks and regards,
+Study Palace Hub Team
+"""
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = sender_email
+    msg["To"] = recipient_email
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()  # Secure the connection
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, msg.as_string())
+        return True
+    except Exception as e:
+        st.error(f"Error sending email to {recipient_email}: {e}")
+        return False
+
+
 # Streamlit App
 # Add CSS styling for the background
 st.markdown(
@@ -101,6 +133,7 @@ if uploaded_file:
 
         # User input for the date column
         date_column = st.sidebar.selectbox("Select the Visa Expiry Date Column", df.columns)
+        email_column = st.sidebar.selectbox("Select the Email Column", df.columns)
 
         # Filter dates using sidebar
         st.sidebar.markdown("### Filter by Expiry Date")
@@ -136,6 +169,12 @@ if uploaded_file:
         if not expiring_students.empty:
             st.markdown("## 🟠 Students with Visa Expiring Soon (Sorted by Days Remaining):")
             st.dataframe(expiring_students)
+
+            # Send Emails Button
+            if st.button("Send Emails to Students with Expiring Visas"):
+                for _, row in expiring_students.iterrows():
+                    send_email(row[email_column], row["Student Name"], row["Days Remaining"])
+                st.success(f"Emails sent to {len(expiring_students)} students!")
         else:
             st.info("No students have a visa expiring in the next month.")
 
