@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 # Function to send email
 def send_email(recipient_email, student_name, days_remaining):
     sender_email = "pratikwandhe9095@gmail.com"  # Replace with your Gmail address
-    sender_password = "Pratik@123"  # Replace with your Gmail App Password
+    sender_password = "fixx dnwn jpin bwix"  # Replace with your Gmail App Password
 
     subject = "Visa Renewal Notification"
     body = f"""Dear {student_name},
