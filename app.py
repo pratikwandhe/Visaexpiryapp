@@ -3,23 +3,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
-import time
-
-
-# Function to highlight rows based on visa expiry status
-def style_rows(row, date_column):
-    today = datetime.today()
-    target_date = today + timedelta(days=30)
-
-    if pd.isnull(row[date_column]):
-        return ''
-    expiry_date = row[date_column]
-    if expiry_date < today:
-        return 'background-color: red; color: white;'
-    elif today <= expiry_date <= target_date:
-        return 'background-color: orange; color: black;'
-    else:
-        return ''
 
 
 # Function to send email
@@ -48,8 +31,7 @@ Study Palace Hub Team
             server.sendmail(sender_email, recipient_email, msg.as_string())
         return True
     except Exception as e:
-        st.error(f"Error sending email to {recipient_email}: {e}")
-        return False
+        return str(e)  # Return error message
 
 
 # Streamlit App
@@ -60,6 +42,14 @@ st.markdown(
         background-color: #f0f8ff;
     }
     footer {visibility: hidden;}
+    .dataframe-container {
+        margin: auto;
+        width: 90%;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -95,11 +85,8 @@ if uploaded_file:
         today = datetime.today()
         df["Days Remaining"] = (df[date_column] - today).dt.days
 
-        # Get students with visa expiring within the next 30 days
-        expiring_students = df[df["Days Remaining"] > 0]
-        expiring_students = expiring_students[expiring_students["Days Remaining"] <= 30]
-
-        # Get students with expired visa
+        # Separate expiring soon and expired students
+        expiring_students = df[(df["Days Remaining"] > 0) & (df["Days Remaining"] <= 30)]
         expired_students = df[df["Days Remaining"] < 0]
 
         # Display metrics
@@ -109,17 +96,18 @@ if uploaded_file:
         col2.metric("Expiring Soon", len(expiring_students))
         col3.metric("Already Expired", len(expired_students))
 
-        # Display expiring soon students
+        # Display expiring soon students in a table
         if not expiring_students.empty:
             st.markdown("## 🟠 Students with Visa Expiring Soon:")
-            for _, row in expiring_students.iterrows():
+            expiring_students = expiring_students.reset_index(drop=True)
+            for i, row in expiring_students.iterrows():
                 student_name = row["Student Name"]
-                days_remaining = row["Days Remaining"]
+                days_remaining = int(row["Days Remaining"])
                 recipient_email = row[email_column]
 
-                col1, col2, col3 = st.columns([3, 1, 1])
+                col1, col2, col3 = st.columns([5, 2, 2])
                 col1.write(f"**{student_name}** - {days_remaining} days remaining")
-                if col2.button("Preview Email", key=f"preview_{student_name}"):
+                if col2.button("Preview Email", key=f"preview_{i}"):
                     st.info(
                         f"""
                         **Preview Email:**
@@ -133,10 +121,12 @@ if uploaded_file:
                         Study Palace Hub Team
                         """
                     )
-                if col3.button("Send Email", key=f"send_{student_name}"):
-                    success = send_email(recipient_email, student_name, days_remaining)
-                    if success:
+                if col3.button("Send Email", key=f"send_{i}"):
+                    result = send_email(recipient_email, student_name, days_remaining)
+                    if result is True:
                         st.success(f"Email sent to {student_name} ({recipient_email}).")
+                    else:
+                        st.error(f"Error sending email to {recipient_email}: {result}")
 
         else:
             st.info("No students have a visa expiring in the next 30 days.")
@@ -144,16 +134,19 @@ if uploaded_file:
         # Display expired students
         if not expired_students.empty:
             st.markdown("## 🔴 Students Whose Visa Has Already Expired:")
-            for _, row in expired_students.iterrows():
+            expired_students = expired_students.reset_index(drop=True)
+            for i, row in expired_students.iterrows():
                 student_name = row["Student Name"]
                 recipient_email = row[email_column]
 
-                col1, col2 = st.columns([3, 1])
+                col1, col2 = st.columns([5, 2])
                 col1.write(f"**{student_name}** - Visa expired")
-                if col2.button("Send Reminder Email", key=f"send_reminder_{student_name}"):
-                    success = send_email(recipient_email, student_name, 0)
-                    if success:
+                if col2.button("Send Reminder Email", key=f"send_reminder_{i}"):
+                    result = send_email(recipient_email, student_name, 0)
+                    if result is True:
                         st.success(f"Reminder email sent to {student_name} ({recipient_email}).")
+                    else:
+                        st.error(f"Error sending email to {recipient_email}: {result}")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
