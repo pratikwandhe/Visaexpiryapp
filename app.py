@@ -157,6 +157,12 @@ if uploaded_file:
         else:
             st.info("No students have a visa expiring in the next month.")
 
+        st.markdown("## 🔴 Students Whose Visa Has Already Expired:")
+        if not visa_expired_students.empty:
+            st.dataframe(visa_expired_students)
+        else:
+            st.info("No students have expired visas.")
+
         # Display registration expiry details
         st.markdown("## 🟠 Students with Registration Expiring Soon:")
         if not registration_expiring_students.empty:
@@ -189,6 +195,12 @@ if uploaded_file:
                         st.error(f"Error sending registration email to {recipient_email}: {result}")
         else:
             st.info("No students have a registration expiring in the next month.")
+
+        st.markdown("## 🔴 Students Whose Registration Has Already Expired:")
+        if not registration_expired_students.empty:
+            st.dataframe(registration_expired_students)
+        else:
+            st.info("No students have expired registrations.")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
